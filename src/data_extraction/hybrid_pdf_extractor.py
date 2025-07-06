@@ -285,7 +285,7 @@ class EnhancedFileExtractor:
         
         return chunks
 
-    # ==================== MAIN PROCESSOR ====================
+    # ==================== MAIN PROCESSOR ===================
     def process_files(self, file_paths: List[str]) -> List[Dict]:
         """Process all files with enhanced multimodal extraction"""
         all_data = []
