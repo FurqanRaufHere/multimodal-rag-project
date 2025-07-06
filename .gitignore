@@ -1,0 +1,8 @@
+#Environment variables file 
+.env
+
+# putting Data files in .gitignore for now as well
+Data/
+
+#virtual environment
+mr/
