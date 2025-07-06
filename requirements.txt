@@ -1,0 +1,68 @@
+# Core Libraries
+pdfplumber==0.10.0          # PDF text/table extraction
+pdf2image==1.16.3           # Convert PDF pages to images
+Pillow==10.3.0              # Image processing
+# pytesseract==0.3.10         # OCR for image text
+opencv-python==4.9.0.80     # Image analysis (charts/graphs)
+python-docx==0.8.11         # DOCX parsing (if needed)
+pymupdf==1.23.25
+easyocr==1.7.1
+pdf2image==1.16.3
+opencv-python==4.9.0.80
+numpy==1.26.4
+
+
+
+# Core PDF/DOCX processing
+PyMuPDF>=1.23.0
+python-docx>=1.1.0
+pdf2image>=3.1.0
+
+# OCR and Image Processing
+easyocr>=1.7.0
+pytesseract>=0.3.10
+opencv-python>=4.8.0
+Pillow>=10.0.0
+
+# AI/ML for image understanding
+transformers>=4.35.0
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Vector database and embeddings
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.4
+chromadb>=0.4.0
+
+# Web interface
+streamlit>=1.28.0
+gradio>=3.50.0
+
+# Utilities
+numpy>=1.24.0
+matplotlib>=3.7.0
+requests>=2.31.0
+tqdm>=4.66.0
+
+# # 🔢 Data Handling
+# pandas==2.2.2               # Dataframes for metadata
+# pyarrow==14.0.2             # Parquet file support
+
+# # 🤖 Embeddings & ML
+# sentence-transformers==2.6.1 # SBERT for text embeddings
+# torch==2.2.2                # PyTorch (required for CLIP)
+# openai-clip==1.0            # CLIP for image embeddings
+# transformers==4.40.0        # Hugging Face models
+
+# # 🗃️ Vector Database
+# chromadb==0.4.24            # Local vector DB (or)
+# weaviate-client==4.5.0      # Weaviate client (if using Weaviate)
+
+# # 🌐 Web Interface
+# streamlit==1.33.0           # UI (prototyping)
+# fastapi==0.110.0            # Backend (production)
+# uvicorn==0.29.0             # ASGI server
+
+# # ⚙️ Utilities
+# python-dotenv==1.0.1        # Environment variables
+# tqdm==4.66.2                # Progress bars
