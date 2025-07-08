@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multimodal RAG System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="header">
+            <h1>🤖 Multimodal RAG System</h1>
+            <p>Ask questions about your documents or upload images for analysis</p>
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="empty-state">
+                <h3>👋 Welcome to the Multimodal RAG System</h3>
+                <p>Start by asking a question or uploading an image to search through your documents</p>
+            </div>
+        </div>
+        
+        <div class="input-area">
+            <div class="file-input-container">
+                <input type="file" id="fileInput" class="file-input" accept="image/*">
+                <label for="fileInput" class="file-input-label">
+                    📎 Upload Image
+                </label>
+                <div class="file-preview" id="filePreview">
+                    <img id="previewImage" src="" alt="Preview">
+                    <p id="fileName"></p>
+                </div>
+            </div>
+            
+            <div class="input-container">
+                <div class="input-wrapper">
+                    <textarea 
+                        id="textInput" 
+                        class="text-input" 
+                        placeholder="Ask a question about your documents..."
+                        rows="1"
+                    ></textarea>
+                </div>
+                <button id="sendButton" class="send-button">
+                    <span>Send</span>
+                    <span>🚀</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
