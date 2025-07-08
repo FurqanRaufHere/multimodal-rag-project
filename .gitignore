@@ -8,3 +8,7 @@ Data/
 mr/
 
 output/
+
+src/embeddings/__pycache__/
+src/retrieval/__pycache__/
+
