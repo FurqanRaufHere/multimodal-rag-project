@@ -1,88 +1,81 @@
-"""
-LLM Integration Module for Mistral Model
-Supports advanced prompting techniques like Chain-of-Thought, zero-shot, few-shot
-"""
-
+import requests
 import os
-from dotenv import load_dotenv
-load_dotenv()
-
-from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
-import torch
 
 class MistralLLM:
-    def __init__(self, model_name: str = "mistralai/Mistral-7B-v0.1", device: str = None):
-        """
-        Initialize Mistral LLM model and tokenizer
-        
-        Args:
-            model_name: Hugging Face model name for Mistral
-            device: Device to run model on ("cuda" or "cpu"). Auto-detect if None.
-        """
-        self.api_key = os.getenv("LLM_API_KEY")
-        if not self.api_key:
-            raise ValueError("LLM_API_KEY not found in environment variables.")
-        
-        self.device = device if device else ("cuda" if torch.cuda.is_available() else "cpu")
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto", torch_dtype=torch.float16)
-        self.model.to(self.device)
-        # Note: If using API key for remote API, pipeline initialization would differ.
-        # Here we keep local model loading; API key usage depends on actual deployment.
-        self.generator = pipeline("text-generation", model=self.model, tokenizer=self.tokenizer, device=0 if self.device=="cuda" else -1)
-    
-    def generate_response(self, prompt: str, max_length: int = 512, temperature: float = 0.7, top_p: float = 0.9) -> str:
-        """
-        Generate response from Mistral model given a prompt
-        
-        Args:
-            prompt: Input prompt string
-            max_length: Maximum length of generated tokens
-            temperature: Sampling temperature
-            top_p: Nucleus sampling probability
-        
-        Returns:
-            Generated text response
-        """
-        outputs = self.generator(prompt, max_length=max_length, temperature=temperature, top_p=top_p, do_sample=True)
-        return outputs[0]['generated_text']
+    def __init__(self):
+        self.api_key = os.getenv("MISTRAL_API_KEY")
+        self.api_url = "https://api.mistral.ai/v1/chat/completions"
+        self.headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+    def generate_response(self, query: str, context: str, max_tokens: int = 512, temperature: float = 0.7, top_p: float = 0.9) -> str:
+        system_prompt = (
+        "You are a highly intelligent, structured, and helpful assistant. Your job is to answer user queries using ONLY the information found in the provided context from the knowledge base.\n\n"
+
+        "Always organize your responses in a well-structured and user-friendly format. Do NOT use outside or general knowledge under any circumstance.\n\n"
+
+        "---\n"
+        "📘 Summary:\n"
+        "- Start with a short paragraph that explains the topic based only on the context.\n\n"
+
+        "🔑 Key Points:\n"
+        "- Use 3 to5 bullet points.\n"
+        "- Begin each with a **bolded heading** followed by a concise explanation.\n\n"
+
+        "💡 Suggestions and Observations:\n"
+        "- Point out any gaps, missing info, or areas where the context lacks depth.\n"
+        "- Suggest consulting external resources if needed.\n\n"
+
+        "📂 Source:\n"
+        "- Include the document name or section, if available. Otherwise, write 'Source not specified.'\n\n"
+
+        "---\n"
+        "📏 Style Guidelines:\n"
+        "- Be brief where possible, detailed where needed.\n"
+        "- Avoid repeating the context word-for-word — summarize and synthesize only what’s relevant.\n"
+        "- Use a respectful, intelligent tone with no fluff.\n"
+        "- Be user-focused, clear, and helpful.\n\n"
+
+        "❗ Important Instructions:\n"
+        "- DO NOT guess or use any external/general knowledge.\n"
+        "- If the context does NOT contain enough relevant information to answer the query:\n"
+        "  → Respond clearly with: 'Sorry, this topic is outside the scope of the provided knowledge base.'\n"
+        "- Always stay within the bounds of the provided context.\n"
+        )
+
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "model": "mistral-medium",  # Adjust based on what you're using
+            "messages": [
+                {"role": "system", "content": system_prompt + f"\n\nContext:\n{context}"},
+                {"role": "user", "content": query}
+            ],
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "top_p": top_p
+        }
+
+        response = requests.post(self.api_url, headers=headers, json=payload)
+
+        if response.status_code != 200:
+            raise RuntimeError(f"API request failed with status {response.status_code}: {response.text}")
+
+        return response.json()['choices'][0]['message']['content']    
     
     def generate_cot_response(self, prompt: str, cot_prefix: str = "Let's think step by step.", **kwargs) -> str:
-        """
-        Generate Chain-of-Thought (CoT) style response
-        
-        Args:
-            prompt: Input prompt string
-            cot_prefix: Prefix to encourage CoT reasoning
-        
-        Returns:
-            Generated CoT response text
-        """
         cot_prompt = cot_prefix + "\n" + prompt
         return self.generate_response(cot_prompt, **kwargs)
 
     def generate_zero_shot(self, prompt: str, **kwargs) -> str:
-        """
-        Generate zero-shot response
-        
-        Args:
-            prompt: Input prompt string
-        
-        Returns:
-            Generated zero-shot response text
-        """
         return self.generate_response(prompt, **kwargs)
 
     def generate_few_shot(self, examples: list, prompt: str, **kwargs) -> str:
-        """
-        Generate few-shot response by prepending examples to prompt
-        
-        Args:
-            examples: List of example strings (input-output pairs)
-            prompt: Input prompt string
-        
-        Returns:
-            Generated few-shot response text
-        """
         few_shot_prompt = "\n".join(examples) + "\n" + prompt
         return self.generate_response(few_shot_prompt, **kwargs)
