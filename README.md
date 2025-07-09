@@ -14,11 +14,11 @@ This repository implements a multimodal Retrieval-Augmented Generation (RAG) sys
 
 ## System Architecture
 
-Documents (PDF/DOCX)
-│
-▼
-Data Extraction (text, tables, images, OCR, captions)
-│
+Documents (PDF/DOCX) <br>
+│ <br>
+▼ <br>
+Data Extraction (text, tables, images, OCR, captions) <br>
+│ <br>
 ▼
 Embeddings (Sentence-BERT, CLIP) → FAISS indices
 │
