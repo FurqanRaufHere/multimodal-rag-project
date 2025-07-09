@@ -1,6 +1,7 @@
 import os
 import sys
 from dotenv import load_dotenv
+import re 
 
 # Load environment variables from .env file
 load_dotenv()
@@ -107,32 +108,86 @@ def process_query():
             logger.error("RAG searcher not initialized")
             return jsonify({'success': False, 'error': 'Searcher not initialized'}), 500
         
-        try:
-            search_results = rag_system.searcher.search(
-                text_query=text_query,
-                image_query=image,
-                top_k=3,  # Adjust top_k as needed
-            )
-            logger.debug(f"Search results obtained: {len(search_results)} items")
-        except Exception as e:
-            logger.error(f"Error during search: {e}", exc_info=True)
-            return jsonify({'success': False, 'error': 'Search failed'}), 500
+        # Check if it's a greeting-only query
+        greeting_only = is_greeting_only(text_query)
+
+        search_results = []
+        context_text = ""
+        if not greeting_only:
+            try:
+                search_results = rag_system.searcher.search(
+                    text_query=text_query,
+                    image_query=image,
+                    top_k=2,  # Adjust top_k as needed
+                )
+                logger.debug(f"Search results obtained: {len(search_results)} items")
+                context_text = "\n\n".join([result.get('content', '') for result in search_results])
+            except Exception as e:
+                logger.error(f"Error during search: {e}", exc_info=True)
+                return jsonify({'success': False, 'error': 'Search failed'}), 500
+        else:
+            logger.debug("Greeting-only message detected. Skipping document search.")
+
+        # try:
+        #     search_results = rag_system.searcher.search(
+        #         text_query=text_query,
+        #         image_query=image,
+        #         top_k=2,  # Adjust top_k as needed
+        #     )
+        #     logger.debug(f"Search results obtained: {len(search_results)} items")
+        # except Exception as e:
+        #     logger.error(f"Error during search: {e}", exc_info=True)
+        #     return jsonify({'success': False, 'error': 'Search failed'}), 500
         
         if not rag_system.llm:
             logger.error("RAG LLM not initialized")
             return jsonify({'success': False, 'error': 'LLM not initialized'}), 500
         
         try:
+            # # Combine search results content as context string
+            # context_text = "\n\n".join([result.get('content', '') for result in search_results])
+            # response = rag_system.llm.generate_response(
+            #     query=text_query,
+            #     context=context_text
+            # )
+            # logger.debug("LLM response generated successfully.")
+
             # Combine search results content as context string
             context_text = "\n\n".join([result.get('content', '') for result in search_results])
-            response = rag_system.llm.generate_response(
-                query=text_query,
-                context=context_text
-            )
-            logger.debug("LLM response generated successfully.")
+
+            # Dynamically choose prompting technique
+            query_lower = text_query.lower()
+
+            if "explain" in query_lower or "how" in query_lower:
+                response = rag_system.llm.generate_cot_response(
+                    prompt=text_query,
+                    context=context_text
+                )
+                logger.debug("Using Chain-of-Thought prompting.")
+                
+            elif "example" in query_lower or "give me" in query_lower:
+                few_shot_examples = [
+                    "Q: What is a database?\nA: A database is an organized collection of data.",
+                    "Q: What is a query?\nA: A query is a request for data from a database."
+                ]
+                response = rag_system.llm.generate_few_shot(
+                    examples=few_shot_examples,
+                    prompt=text_query,
+                    context=context_text
+                )
+                logger.debug("Using Few-Shot prompting.")
+
+            else:
+                response = rag_system.llm.generate_response(
+                    query=text_query,
+                    context=context_text
+                )
+                logger.debug("Using Zero-Shot prompting.")
+        
         except Exception as e:
             logger.error(f"Error generating LLM response: {e}", exc_info=True)
             return jsonify({'success': False, 'error': 'Response generation failed'}), 500
+        
         
         # Check if response is relevant (non-empty and meaningful)
         if not response or response.strip() == "" or len(response.strip()) < 10:
@@ -140,16 +195,17 @@ def process_query():
         
         # Format results for frontend
         formatted_results = []
-        for result in search_results:
-            formatted_results.append({
-                'title': result.get('title', 'Document Section'),
-                'snippet': result.get('content', '')[:200] + '...',
-                'score': result.get('similarity_score', 0.0),
-                'source': result.get('source_file', 'Unknown'),
-                'page': result.get('page_number', 1),
-                'type': result.get('content_type', 'text')
-            })
-        
+        if "outside the scope of the provided knowledge base" not in response.lower():
+            for result in search_results:
+                formatted_results.append({
+                    'title': result.get('title', 'Document Section'),
+                    'snippet': result.get('content', '')[:200] + '...',
+                    'score': result.get('similarity_score', 0.0),
+                    'source': result.get('source_file', 'Unknown'),
+                    'page': result.get('page_number', 1),
+                    'type': result.get('content_type', 'text')
+                })
+            
         return jsonify({
             'success': True,
             'answer': response,
@@ -177,6 +233,21 @@ def serve_document(filename):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+def is_greeting_only(query: str) -> bool:
+    greeting_patterns = [
+        r"\bhi\b", r"\bhello\b", r"\bhey\b", r"\bgood (morning|evening|afternoon)\b",
+        r"\bsalaam\b", r"\bassalamualaikum\b", r"\bnamaste\b", r"\bhowdy\b",
+        r"\bhow (are|r) (you|ya)\b", r"\bwhat'?s up\b", r"\bhow's it going\b", r"\bgreetings\b", r"\bthanks\b", r"\bthank you\b",
+        r"\bthank you very much\b", r"\bappreciate it\b", r"\bappreciate your help\b", r"\bappreciate your assistance\b",
+        r"\bappreciate your support\b", r"\bappreciate your time\b", r"\bappreciate your response\b",
+        r"\bappreciate your input\b", r"\bappreciate your feedback\b", r"\bappreciate your assistance\b", r"\bappreciate your cooperation\b",
+        r"\bappreciate your understanding\b", r"\bappreciate your patience\b", r"\bappreciate your kindness\b",
+        r"\bappreciate your generosity\b", r"\bappreciate your thoughtfulness\b", r"\bappreciate your consideration\b",
+        r"\bappreciate your effort\b", r"\bappreciate your support\b", r"\bappreciate your help\b", r"\bappreciate your assistance\b",
+    ]
+    cleaned = query.strip().lower()
+    return any(re.search(pattern, cleaned) for pattern in greeting_patterns)
+
 def generate_mock_search_results():
     """Removed mock search results as per user request"""
     return []
@@ -187,3 +258,13 @@ def generate_mock_response(query, has_image):
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+
+
+@app.route('/semantic-viz')
+def semantic_visualization():
+    sample_results = [
+        {"title": "Page 1", "score": 0.85},
+        {"title": "Page 2", "score": 0.75},
+        {"title": "Page 3", "score": 0.60}
+    ]
+    return render_template("semantic_viz.html", results=sample_results)
