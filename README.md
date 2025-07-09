@@ -19,17 +19,17 @@ Documents (PDF/DOCX) <br>
 ▼ <br>
 Data Extraction (text, tables, images, OCR, captions) <br>
 │ <br>
-▼
-Embeddings (Sentence-BERT, CLIP) → FAISS indices
-│
-▼
-Semantic Search (text/image/multimodal queries)
-│
-▼
-LLM (Mistral) → Answer Generation
-│
-▼
-Frontend (Flask-based interface)
+▼ <br>
+Embeddings (Sentence-BERT, CLIP) → FAISS indices <br>
+│ <br>
+▼ <br>
+Semantic Search (text/image/multimodal queries) <br>
+│ <br>
+▼ <br>
+LLM (Mistral) → Answer Generation <br>
+│ <br>
+▼ <br>
+Frontend (Flask-based interface) <br>
 
 
 ## Directory Structure
