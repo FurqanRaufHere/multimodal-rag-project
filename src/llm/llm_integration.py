@@ -70,6 +70,7 @@ class MistralLLM:
 
         return response.json()['choices'][0]['message']['content']    
     
+    # Generate responses with different prompting strategies
     def generate_cot_response(self, prompt: str, cot_prefix: str = "Let's think step by step.", **kwargs) -> str:
         cot_prompt = cot_prefix + "\n" + prompt
         return self.generate_response(cot_prompt, **kwargs)
