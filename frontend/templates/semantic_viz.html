@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Semantic Search Visualization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f8;
+            margin: 0;
+            padding: 30px;
+            text-align: center;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        canvas {
+            max-width: 900px;
+            margin: 0 auto 30px;
+            display: block;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        .back-button {
+            margin-top: 20px;
+        }
+
+        .back-button button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4285f4;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .back-button button:hover {
+            background-color: #3367d6;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>🔍 Semantic Search Similarity Scores</h2>
+    <canvas id="scoreChart"></canvas>
+
+    <div class="back-button">
+        <a href="/" target="_self">
+            <button>⬅️ Back to Chat</button>
+        </a>
+    </div>
+
+    <script>
+        const chartResults = JSON.parse('{{ results | tojson | safe }}');
+
+        const labels = chartResults.map(r => r.title);
+        const scores = chartResults.map(r => (r.score * 100).toFixed(2));
+
+        const ctx = document.getElementById('scoreChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Similarity Score (%)',
+                    data: scores,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Score: ${context.parsed.y}%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        title: {
+                            display: true,
+                            text: 'Similarity (%)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            autoSkip: false,
+                            maxRotation: 45,
+                            minRotation: 30
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>
