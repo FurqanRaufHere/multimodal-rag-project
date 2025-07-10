@@ -16,7 +16,6 @@ class MultimodalRetriever:
         k: int = 5
     ) -> List[Dict]:
         self.query = query or ""  # <-- Add this line to pass query to _rerank()
-        # initial_k = max(k * 4, 20)  # NEW: broaden FAISS retrieval scope
 
         """
         Unified retrieval for text/image queries with metadata filtering.
@@ -39,14 +38,7 @@ class MultimodalRetriever:
             results = self.manager.search_similar_images(image_path, k)
         else:
             raise ValueError("Must provide query or image")
-        # if query and image_path:
-        #     results = self._multimodal_search(query, image_path, initial_k)
-        # elif query:
-        #     results = self.manager.search_similar_text(query, initial_k)
-        # elif image_path:
-        #     results = self.manager.search_similar_images(image_path, initial_k)
-        # else:
-        #     raise ValueError("Must provide query or image")    
+         
 
 
 
