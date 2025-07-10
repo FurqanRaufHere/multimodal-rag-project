@@ -22,12 +22,8 @@ class SemanticSearcher:
         
         # Initialize LLM
         self.llm = MistralLLM()
-    
-    # def preprocess_query(self, query: str) -> str:
-    #     query = query.lower()
-    #     query = re.sub(r'[^a-z0-9\s]', '', query)
-    #     query = re.sub(r'\s+', ' ', query).strip()
-    #     return query
+        
+    # Preprocess text query to remove special characters and normalize
     def preprocess_query(self, query: str) -> str:
         query = query.lower()
         query = re.sub(r'[^a-z0-9\s]', '', query)
