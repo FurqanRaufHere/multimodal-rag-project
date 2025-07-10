@@ -2,6 +2,10 @@ import os
 import sys
 from dotenv import load_dotenv
 import re 
+import time 
+
+last_search_results = []
+start_time = time.time()
 
 # Load environment variables from .env file
 load_dotenv()
@@ -74,151 +78,120 @@ rag_system = RAGSystem()
 def index():
     return render_template('index.html')
 
+
 @app.route('/api/query', methods=['POST'])
 def process_query():
     try:
         data = request.json
-        text_query = data.get('text', '')
+        text_query = data.get('text', '').strip()
         image_data = data.get('image', None)
-        
-        logger.debug(f"Received query: {text_query}, image included: {bool(image_data)}")
-        logger.debug(f"Raw text_query: '{text_query}'")
-        
-        # Process image if provided
+
+        logger.debug(f"Received query: '{text_query}', image included: {bool(image_data)}")
+
+        # Handle optional image input
         image = None
         if image_data:
             try:
-                # Remove data:image/jpeg;base64, prefix
                 image_data_clean = image_data.split(',')[1]
                 image_bytes = base64.b64decode(image_data_clean)
                 image = Image.open(BytesIO(image_bytes))
                 logger.debug("Image processed successfully.")
-                logger.debug(f"Image object: {image}")
             except Exception as e:
-                logger.error(f"Error processing image data: {e}", exc_info=True)
+                logger.error("Error processing image", exc_info=True)
                 return jsonify({'success': False, 'error': 'Invalid image data'}), 400
-        
-        # Validate input: must have either non-empty text_query or image
-        if (not text_query or text_query.strip() == "") and not image:
-            logger.error("No query or image provided")
+
+        # Validate that at least a text query or image is provided
+        if not text_query and not image:
             return jsonify({'success': False, 'error': 'Must provide text query or image'}), 400
 
-        # Perform multimodal search
+        # Check for greeting-only query
+        if is_greeting_only(text_query):
+            return jsonify({'success': True, 'answer': "Hello! How can I assist you today?", 'search_results': []})
+
+        # Perform search
         if not rag_system.searcher:
-            logger.error("RAG searcher not initialized")
             return jsonify({'success': False, 'error': 'Searcher not initialized'}), 500
-        
-        # Check if it's a greeting-only query
-        greeting_only = is_greeting_only(text_query)
 
-        search_results = []
-        context_text = ""
-        if not greeting_only:
-            try:
-                search_results = rag_system.searcher.search(
-                    text_query=text_query,
-                    image_query=image,
-                    top_k=2,  # Adjust top_k as needed
-                )
-                logger.debug(f"Search results obtained: {len(search_results)} items")
-                context_text = "\n\n".join([result.get('content', '') for result in search_results])
-            except Exception as e:
-                logger.error(f"Error during search: {e}", exc_info=True)
-                return jsonify({'success': False, 'error': 'Search failed'}), 500
-        else:
-            logger.debug("Greeting-only message detected. Skipping document search.")
-
-        # try:
-        #     search_results = rag_system.searcher.search(
-        #         text_query=text_query,
-        #         image_query=image,
-        #         top_k=2,  # Adjust top_k as needed
-        #     )
-        #     logger.debug(f"Search results obtained: {len(search_results)} items")
-        # except Exception as e:
-        #     logger.error(f"Error during search: {e}", exc_info=True)
-        #     return jsonify({'success': False, 'error': 'Search failed'}), 500
-        
-        if not rag_system.llm:
-            logger.error("RAG LLM not initialized")
-            return jsonify({'success': False, 'error': 'LLM not initialized'}), 500
-        
         try:
-            # # Combine search results content as context string
-            # context_text = "\n\n".join([result.get('content', '') for result in search_results])
-            # response = rag_system.llm.generate_response(
-            #     query=text_query,
-            #     context=context_text
-            # )
-            # logger.debug("LLM response generated successfully.")
+            search_results, response = rag_system.searcher.search(
+                text_query=text_query,
+                image_query=image,
+                top_k=2  # Adjust top_k as needed
+            )
+        except Exception as e:
+            logger.error("Search error", exc_info=True)
+            return jsonify({'success': False, 'error': 'Search failed'}), 500
 
-            # Combine search results content as context string
-            context_text = "\n\n".join([result.get('content', '') for result in search_results])
+        # Dynamically determine prompting strategy
+        query_lower = text_query.lower()
+        context_text = "\n\n".join([r.get("content", "") for r in search_results])
 
-            # Dynamically choose prompting technique
-            query_lower = text_query.lower()
+        try:
+            if not rag_system.llm:
+                return jsonify({'success': False, 'error': 'LLM not initialized'}), 500
 
-            if "explain" in query_lower or "how" in query_lower:
+            if "explain" in query_lower or "how" in query_lower or "why" in query_lower:
                 response = rag_system.llm.generate_cot_response(
                     prompt=text_query,
                     context=context_text
                 )
-                logger.debug("Using Chain-of-Thought prompting.")
-                
+                logger.debug("Used Chain-of-Thought prompting.")
             elif "example" in query_lower or "give me" in query_lower:
-                few_shot_examples = [
-                    "Q: What is a database?\nA: A database is an organized collection of data.",
-                    "Q: What is a query?\nA: A query is a request for data from a database."
+                examples = [
+                    "Q: What is a function?\nA: A reusable block of code to perform a specific task.",
+                    "Q: What is a class?\nA: A blueprint for creating objects in OOP."
                 ]
                 response = rag_system.llm.generate_few_shot(
-                    examples=few_shot_examples,
+                    examples=examples,
                     prompt=text_query,
                     context=context_text
                 )
-                logger.debug("Using Few-Shot prompting.")
-
+                logger.debug("Used Few-Shot prompting.")
             else:
                 response = rag_system.llm.generate_response(
                     query=text_query,
                     context=context_text
                 )
-                logger.debug("Using Zero-Shot prompting.")
-        
+                logger.debug("Used Zero-Shot prompting.")
         except Exception as e:
-            logger.error(f"Error generating LLM response: {e}", exc_info=True)
-            return jsonify({'success': False, 'error': 'Response generation failed'}), 500
-        
-        
-        # Check if response is relevant (non-empty and meaningful)
+            logger.error("LLM response generation error", exc_info=True)
+            return jsonify({'success': False, 'error': 'LLM response failed'}), 500
+
         if not response or response.strip() == "" or len(response.strip()) < 10:
             response = "Sorry, I don't have a relevant answer for that."
-        
-        # Format results for frontend
+
+        # Prepare frontend search result snippets
         formatted_results = []
         if "outside the scope of the provided knowledge base" not in response.lower():
-            for result in search_results:
+            for r in search_results:
                 formatted_results.append({
-                    'title': result.get('title', 'Document Section'),
-                    'snippet': result.get('content', '')[:200] + '...',
-                    'score': result.get('similarity_score', 0.0),
-                    'source': result.get('source_file', 'Unknown'),
-                    'page': result.get('page_number', 1),
-                    'type': result.get('content_type', 'text')
+                    'title': r.get('title', 'Document Section'),
+                    'snippet': r.get('content', '')[:200] + '...',
+                    'score': r.get('similarity_score', 0.0),
+                    'source': r.get('source_file', 'Unknown'),
+                    'page': r.get('page_number', 1),
+                    'type': r.get('content_type', 'text')
                 })
-            
+
+        global last_search_results
+        last_search_results = formatted_results
+
+        query_duration = round(time.time() - start_time, 3)
+
         return jsonify({
             'success': True,
             'answer': response,
             'search_results': formatted_results,
-            'query_time': 0.5  # You can track actual time
+            'query_time': query_duration
         })
-        
+
     except Exception as e:
-        logger.error(f"Unhandled exception in process_query: {e}", exc_info=True)
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
+        logger.error("Unhandled exception in /api/query", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+
+
 
 @app.route('/api/document/<path:filename>')
 def serve_document(filename):
@@ -256,15 +229,12 @@ def generate_mock_response(query, has_image):
     """Removed mock response as per user request"""
     return "Sorry, I don't have a relevant answer for that."
 
+@app.route('/semantic-viz')
+def semantic_visualization():
+    global last_search_results
+    logger.info("Accessed /semantic-viz route")
+    return render_template('semantic_viz.html', results=last_search_results)
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
 
-
-@app.route('/semantic-viz')
-def semantic_visualization():
-    sample_results = [
-        {"title": "Page 1", "score": 0.85},
-        {"title": "Page 2", "score": 0.75},
-        {"title": "Page 3", "score": 0.60}
-    ]
-    return render_template("semantic_viz.html", results=sample_results)
