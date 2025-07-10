@@ -32,23 +32,6 @@ LLM (Mistral) → Answer Generation <br>
 Frontend (Flask-based interface) <br>
 
 
-## Directory Structure
-
-├── data/ # Input documents (PDF, DOCX)
-├── output/ # Extracted chunks and images
-├── extracted_data/ # Preprocessed chunk pickle
-├── embeddings_data/ # FAISS indices and stats
-├── src/
-│ ├── extraction/ # data_extraction.py
-│ ├── embeddings/ # text_image_embeddings.py
-│ ├── retrieval/ # retrieval.py
-│ ├── llm/ # llm_integration.py
-│ └── semantic/ # semantic_search.py
-├── frontend/ # Flask app and templates
-├── prepare_chunks_for_embeddings.py
-├── requirements.txt
-└── README.md
-
 
 ## 🛠️ Technologies Used
 

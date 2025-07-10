@@ -1,0 +1,14 @@
+{
+  "text_embeddings_created": 307,
+  "image_embeddings_created": 36,
+  "total_chunks_processed": 343,
+  "faiss_indices_created": 3,
+  "processing_time": 22.502702,
+  "model_info": {
+    "text_model": "sentence-transformers/all-MiniLM-L6-v2",
+    "text_dimension": 384,
+    "image_model": "openai/clip-vit-base-patch32",
+    "image_dimension": 512,
+    "device": "cpu"
+  }
+}
