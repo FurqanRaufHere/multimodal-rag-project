@@ -110,7 +110,9 @@ class MultimodalRAGInterface {
                 </div>
             `;
         } else {
-            content.innerHTML = `<div>${text}</div>`;
+            // content.innerHTML = `<div>${text}</div>`;
+            content.innerHTML = `<div>${marked.parse(text)}</div>`;
+
             
             if (file) {
                 const img = document.createElement('img');
