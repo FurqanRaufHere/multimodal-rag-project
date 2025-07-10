@@ -1,5 +1,7 @@
 import numpy as np
 from typing import List, Dict, Union
+
+from torch import chunk
 from src.embeddings.text_image_embeddings import MultimodalEmbeddingManager
 
 class MultimodalRetriever:
@@ -13,6 +15,9 @@ class MultimodalRetriever:
         filters: Dict[str, str] = None,
         k: int = 5
     ) -> List[Dict]:
+        self.query = query or ""  # <-- Add this line to pass query to _rerank()
+        # initial_k = max(k * 4, 20)  # NEW: broaden FAISS retrieval scope
+
         """
         Unified retrieval for text/image queries with metadata filtering.
         
@@ -34,13 +39,24 @@ class MultimodalRetriever:
             results = self.manager.search_similar_images(image_path, k)
         else:
             raise ValueError("Must provide query or image")
-        
+        # if query and image_path:
+        #     results = self._multimodal_search(query, image_path, initial_k)
+        # elif query:
+        #     results = self.manager.search_similar_text(query, initial_k)
+        # elif image_path:
+        #     results = self.manager.search_similar_images(image_path, initial_k)
+        # else:
+        #     raise ValueError("Must provide query or image")    
+
+
+
         # Apply metadata filters
         if filters:
             results = self._filter_results(results, filters)
         
         # Rerank by combined score
-        return self._rerank(results)
+        # return self._rerank(results)
+        return self._rerank(results)[:k]
 
     def _multimodal_search(
         self,
@@ -75,14 +91,46 @@ class MultimodalRetriever:
                 filtered.append((chunk, score))
         return filtered
 
+    # def _rerank(self, results: List[tuple]) -> List[Dict]:
+    #     """Apply custom ranking logic"""
+    #     reranked = []
+    #     for chunk, score in results:
+    #         # Boost score if chunk has both text and image
+    #         if 'image_data' in chunk and len(chunk['content']) > 10:
+    #             score *= 1.2 
+
+    #         reranked.append({
+    #             "content": chunk['content'],
+    #             "score": float(score),
+    #             "type": chunk['type'],
+    #             "source": chunk['source'],
+    #             "page": chunk.get('page'),
+    #             "image_data": chunk.get('image_data')
+    #         })
+        
+    #     return sorted(reranked, key=lambda x: x['score'], reverse=True)
+
     def _rerank(self, results: List[tuple]) -> List[Dict]:
         """Apply custom ranking logic"""
+        query_text = getattr(self, "query", "").lower()
         reranked = []
-        for chunk, score in results:
-            # Boost score if chunk has both text and image
-            if 'image_data' in chunk and len(chunk['content']) > 10:
+
+        for i, (chunk, score) in enumerate(results):
+            content = chunk.get('content', '').lower()
+
+            # Boost score if chunk contains query phrase
+            if query_text in content:
+                print("✅ Exact phrase match boosting!")
+                score *= 1.5
+
+            # Boost score for image+text chunks
+            if 'image_data' in chunk and len(content) > 10:
                 score *= 1.2
-            
+
+            print(f"[RANK {i+1}] Score: {score:.4f}")
+            print(f"Type: {chunk.get('type')} | Source: {chunk.get('source')} | Page: {chunk.get('page')}")
+            print(f"Content: {chunk.get('content', '')[:120]}...\n")
+
             reranked.append({
                 "content": chunk['content'],
                 "score": float(score),
@@ -91,5 +139,5 @@ class MultimodalRetriever:
                 "page": chunk.get('page'),
                 "image_data": chunk.get('image_data')
             })
-        
+
         return sorted(reranked, key=lambda x: x['score'], reverse=True)
