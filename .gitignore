@@ -7,17 +7,17 @@ Data/
 #virtual environment
 mr/
 
-output/
+#output/
 
 # Python cache files
 src/embeddings/__pycache__/
 src/retrieval/__pycache__/
 
 # embeddings data
-embeddings_data/
+#embeddings_data/
 
 #extracted data
-extracted_data/
+#extracted_data/
 
 src/llm/__pycache__/
 
