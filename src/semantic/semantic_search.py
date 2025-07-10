@@ -42,7 +42,7 @@ class SemanticSearcher:
         # Perform retrieval
         results = self.retriever.retrieve(
             query=preprocessed_query,
-            image_path=None,  # image_query is PIL Image, retriever expects path, so skip image retrieval here
+            image_path=None,  # image_query is PIL Image, retriever expects path, so skip image retrieval 
             k=top_k
         )
         
