@@ -23,12 +23,18 @@ class SemanticSearcher:
         # Initialize LLM
         self.llm = MistralLLM()
     
+    # def preprocess_query(self, query: str) -> str:
+    #     query = query.lower()
+    #     query = re.sub(r'[^a-z0-9\s]', '', query)
+    #     query = re.sub(r'\s+', ' ', query).strip()
+    #     return query
     def preprocess_query(self, query: str) -> str:
         query = query.lower()
         query = re.sub(r'[^a-z0-9\s]', '', query)
         query = re.sub(r'\s+', ' ', query).strip()
         return query
-    
+
+
     def search(self, text_query: str = None, image_query = None, top_k: int = 5):
         # Preprocess text query
         preprocessed_query = self.preprocess_query(text_query) if text_query else None
@@ -41,10 +47,20 @@ class SemanticSearcher:
         )
         
         # Prepare context from retrieved results
-        context = ""
+        context_lines = []
         for res in results:
-            context += res['content'] + "\n"
-        
+            meta = f"[{res.get('source', 'Unknown')} | Page {res.get('page', 'N/A')}]"
+            content = res.get("content", "")
+            context_lines.append(f"{meta}\n{content}")
+        context = "\n\n".join(context_lines)
+
+        # Optional: print to debug
+        print("===== LLM CONTEXT DEBUG =====")
+        print(f"Context length: {len(context)} characters")
+        print(context[:1000])  # Print first 1000 chars to avoid flooding logs
+        print("===== END CONTEXT =====")
+
+
         # Construct system prompt
         system_prompt = (
             "You are a highly intelligent, helpful assistant. Use the provided context to answer the user query accurately, clearly, and concisely.\n\n"
@@ -53,17 +69,18 @@ class SemanticSearcher:
             "- If the query suggests the user needs an explanation or elaboration, respond in a detailed and structured manner.\n"
             "- Avoid repeating the context. Synthesize and summarize only what’s necessary.\n"
             "- Be direct, respectful, and avoid filler words.\n"
-            "- If the context does not contain enough information, politely mention it rather than guessing.\n\n"
+            "- If the context does not contain enough information, politely mention it rather than guessing.\n"
+            "- Do NOT respond with 'Sorry, this topic is outside the scope of the provided knowledge base.' unless absolutely no relevant information is found.\n"
+            "- Instead, try to provide the best possible answer based on the context, even if partial.\n\n"
             "Context:\n"
             f"{context}\n"
             "Query:\n"
             f"{text_query}\n"
-            "Answer:"
+            "Answer:" 
         )
-        
         # Generate response from LLM
         response = self.llm.generate_response(query=text_query, context=context)
-        
+
         # Format results for frontend
         formatted_results = []
         for res in results:
@@ -75,8 +92,8 @@ class SemanticSearcher:
                 'page_number': res.get('page', 1),
                 'content_type': res.get('type', 'text')
             })
-        
-        return formatted_results
+
+        return formatted_results, response
 
 if __name__ == "__main__":
     # For CLI testing, you can keep the main function or remove it
