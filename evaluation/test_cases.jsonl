@@ -1,0 +1,3 @@
+{"query": "What is head tracking?", "expected_answer": "Head tracking monitors the position and movement of the user's head."}
+{"query": "Explain the purpose of Milestone 1 in the 3D Viewer Plan.", "expected_answer": "Milestone 1 involves creating a basic 3D Viewer application that renders a 3D object and allows camera interaction."}
+{"query": "What is the outcome of the head tracking system?", "expected_answer": "The system reliably tracks head movements and sends this data to the application."}

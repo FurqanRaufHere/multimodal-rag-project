@@ -1,0 +1,32 @@
+Test #,Query,Expected Answer,Generated Answer,BLEU Score,ROUGE-L Score
+1,What is head tracking?,Head tracking monitors the position and movement of the user's head.,"Based on the provided context, there is no information about ""head tracking."" The context only mentions a ""Track Beneficiary Program"" and ""Track Application,"" which do not seem to be related to head tracking technology.
+
+💡 Suggestions and Observations:
+- The context does not provide any details about head tracking.
+- It might be helpful to consult external resources or provide more specific context related to head tracking for a more accurate answer.
+
+📂 Source:
+- Source not specified.",0.0055,0.0909
+2,Explain the purpose of Milestone 1 in the 3D Viewer Plan.,Milestone 1 involves creating a basic 3D Viewer application that renders a 3D object and allows camera interaction.,"The provided context does not contain any information related to a ""3D Viewer Plan"" or ""Milestone 1."" Therefore, I cannot provide an explanation for the purpose of Milestone 1 in the 3D Viewer Plan based on the given context.
+
+📘 Summary:
+- The context provided does not address the 3D Viewer Plan or any milestones associated with it.
+
+💡 Suggestions and Observations:
+- The context focuses on system integration with external databases for beneficiary verification and tracking the frequency and success of updates.
+- There is no information about a 3D Viewer Plan or specific milestones within any plan.
+
+📂 Source:
+- Source not specified.",0.0123,0.1412
+3,What is the outcome of the head tracking system?,The system reliably tracks head movements and sends this data to the application.,"The provided context does not contain explicit information about the outcomes of a head tracking system. However, it does mention the importance of regular updates and synchronization of information between systems, which could be related to tracking applications in general.
+
+🔑 Key Points:
+- **Regular Updates**: The context emphasizes the need for regular updates, which could imply that tracking systems, including head tracking systems, require frequent updates to maintain accuracy and relevance.
+- **Synchronization**: Synchronization between different systems is highlighted, suggesting that head tracking systems might need to be synchronized with other systems or databases to function effectively.
+
+💡 Suggestions and Observations:
+- The context does not provide specific details about the outcomes or functionalities of a head tracking system.
+- For comprehensive information on the outcomes of a head tracking system, it might be beneficial to consult external resources or more detailed documentation.
+
+📂 Source:
+- Source not specified.",0.0036,0.098
