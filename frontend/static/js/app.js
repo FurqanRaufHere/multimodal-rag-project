@@ -110,7 +110,9 @@ class MultimodalRAGInterface {
                 </div>
             `;
         } else {
-            content.innerHTML = `<div>${text}</div>`;
+            // content.innerHTML = `<div>${text}</div>`;
+            content.innerHTML = `<div>${marked.parse(text)}</div>`;
+
             
             if (file) {
                 const img = document.createElement('img');
@@ -144,6 +146,13 @@ class MultimodalRAGInterface {
                 
                 content.appendChild(resultsDiv);
             }
+            // else {
+            //     const noResultDiv = document.createElement('div');
+            //     noResultDiv.className = 'no-results';
+            //     noResultDiv.innerHTML = '<em>📭 No relevant documents were retrieved for this query.</em>';
+            //     content.appendChild(noResultDiv);
+            // }
+
         }
         
         messageDiv.appendChild(avatar);
