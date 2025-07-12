@@ -81,6 +81,8 @@ def process_query():
         text_query = data.get('text', '')
         image_data = data.get('image', None)
         
+        query_type = "Text + Image" if text_query and image_data else "Text only" if text_query else "Image only"
+        logger.debug(f"📨 Query type: {query_type}")
         logger.debug(f"Received query: {text_query}, image included: {bool(image_data)}")
         logger.debug(f"Raw text_query: '{text_query}'")
         
@@ -92,6 +94,7 @@ def process_query():
                 image_data_clean = image_data.split(',')[1]
                 image_bytes = base64.b64decode(image_data_clean)
                 image = Image.open(BytesIO(image_bytes))
+                image_base64_for_embedding = image_data_clean  # ✅ preserve base64 string for embedding
                 logger.debug("Image processed successfully.")
                 logger.debug(f"Image object: {image}")
             except Exception as e:
@@ -115,9 +118,9 @@ def process_query():
         context_text = ""
         if not greeting_only:
             try:
-                search_results = rag_system.searcher.search(
-                    text_query=text_query,
-                    image_query=image,
+                search_results, _ = rag_system.searcher.search(
+                    text_query=text_query if text_query.strip() else None,
+                    image_query=image_base64_for_embedding if image else None,
                     top_k=2,  # Adjust top_k as needed
                 )
                 logger.debug(f"Search results obtained: {len(search_results)} items")
@@ -128,32 +131,19 @@ def process_query():
         else:
             logger.debug("Greeting-only message detected. Skipping document search.")
 
-        # try:
-        #     search_results = rag_system.searcher.search(
-        #         text_query=text_query,
-        #         image_query=image,
-        #         top_k=2,  # Adjust top_k as needed
-        #     )
-        #     logger.debug(f"Search results obtained: {len(search_results)} items")
-        # except Exception as e:
-        #     logger.error(f"Error during search: {e}", exc_info=True)
-        #     return jsonify({'success': False, 'error': 'Search failed'}), 500
         
         if not rag_system.llm:
             logger.error("RAG LLM not initialized")
             return jsonify({'success': False, 'error': 'LLM not initialized'}), 500
         
         try:
-            # # Combine search results content as context string
-            # context_text = "\n\n".join([result.get('content', '') for result in search_results])
-            # response = rag_system.llm.generate_response(
-            #     query=text_query,
-            #     context=context_text
-            # )
-            # logger.debug("LLM response generated successfully.")
 
             # Combine search results content as context string
             context_text = "\n\n".join([result.get('content', '') for result in search_results])
+
+            if not text_query.strip():
+                # Fallback prompt if no text provided (image-only query)
+                text_query = "Describe the image or related content from the documents."
 
             # Dynamically choose prompting technique
             query_lower = text_query.lower()
@@ -193,9 +183,34 @@ def process_query():
         if not response or response.strip() == "" or len(response.strip()) < 10:
             response = "Sorry, I don't have a relevant answer for that."
         
+        # ✅ Sort search results by similarity score (descending)
+        search_results = sorted(search_results, key=lambda x: x.get('similarity_score', 0), reverse=True)
+
+
         # Format results for frontend
+        # formatted_results = []
+        # if "outside the scope of the provided knowledge base" not in response.lower():
+        #     for result in search_results:
+        #         formatted_results.append({
+        #             'title': result.get('title', 'Document Section'),
+        #             'snippet': result.get('content', '')[:200] + '...',
+        #             'score': result.get('similarity_score', 0.0),
+        #             'source': result.get('source_file', 'Unknown'),
+        #             'page': result.get('page_number', 1),
+        #             'type': result.get('content_type', 'text')
+        #         })
+
+        # ✅ Enhanced filtering: only include search results if LLM considers query relevant
         formatted_results = []
-        if "outside the scope of the provided knowledge base" not in response.lower():
+
+        irrelevant_phrases = [
+            "outside the scope of the provided knowledge base",
+            "i don't have a relevant answer",
+            "this topic is not covered",
+            "sorry, this topic is outside"
+        ]
+
+        if not any(phrase in response.lower() for phrase in irrelevant_phrases):
             for result in search_results:
                 formatted_results.append({
                     'title': result.get('title', 'Document Section'),
@@ -204,8 +219,9 @@ def process_query():
                     'source': result.get('source_file', 'Unknown'),
                     'page': result.get('page_number', 1),
                     'type': result.get('content_type', 'text')
-                })
-            
+                })    
+        
+
         return jsonify({
             'success': True,
             'answer': response,
